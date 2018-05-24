@@ -2,6 +2,7 @@
 #define CONTROLLER_HH
 
 #include <cstdint>
+#include <math.h>
 
 /* Congestion controller interface */
 
@@ -11,6 +12,30 @@ private:
   bool debug_; /* Enables debugging output */
 
   /* Add member variables here */
+  bool slow_start = true;
+  int cwnd = 0;
+  int dwnd = 0;
+
+  double cwnd_ = 0;
+  double dwnd_ = 0;
+
+  /* CTCP params: */
+  double alpha = 0.1;
+  double beta = 0.1;
+  int k = 1;
+  int gamma = 1;
+  double zeta = 0.5;
+
+  /* RTT params */
+  double rtt = 0;
+  double base_rtt = INFINITY; 
+
+  double rtt_smooth = 0.1; /* ewma smoothing factor. */
+
+  uint64_t send_seqno = 0; /* last sent seqno. */
+  uint64_t recv_seqno = 0; /* last received seqno. */
+
+  double SLOWSTART_TIMEOUT = 125;
 
 public:
   /* Public interface for the congestion controller */
@@ -27,6 +52,11 @@ public:
   void datagram_was_sent( const uint64_t sequence_number,
 			  const uint64_t send_timestamp,
 			  const bool after_timeout );
+
+  void update_rtt(const uint64_t timestamp_ack_received, 
+                               const uint64_t send_timestamp_acked);
+
+  void update_dwnd(double win, double diff);
 
   /* An ack was received */
   void ack_received( const uint64_t sequence_number_acked,
